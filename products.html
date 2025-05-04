@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+  <title>Waraf | Our Products</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+
+<body>
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a href="index.html" class="header__logo logo">Waraf</a>
+        <div class="header__navigation">
+          <div class="header__menu menu">
+            <nav class="menu__body">
+              <ul class="menu__list">
+                <li class="menu__item"><a href="index.html" class="menu__link">Home</a></li>
+                <li class="menu__item"><a href="about.html" class="menu__link">About</a></li>
+                <li class="menu__item"><a href="services.html" class="menu__link">Solutions</a></li>
+                <li class="menu__item"><a href="products.html" class="menu__link">Products</a></li>
+                <li class="menu__item"><a href="contact.html" class="menu__link">Contact</a></li>
+              </ul>
+              <div class="user-dropdown" id="user-dropdown" style="display: none;">
+                <div class="user-button">
+                  <div class="user-avatar" id="user-avatar">U</div>
+                </div>
+                <div class="user-menu" id="user-menu">
+                  <a href="dashboard.html" class="user-menu-item">Dashboard</a>
+                  <div class="user-menu-divider"></div>
+                  <a href="#" class="user-menu-item" id="logout-button">Log Out</a>
+                </div>
+              </div>
+              <a href="#" class="actions-header__button" id="login-button">Login</a>
+            </nav>
+          </div>
+          <div class="header__actions actions-header">
+            <button type="button" class="menu__icon icon-menu"><span></span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <section class="page__main main main_products main_pages">
+        <div class="main__container main__container_pages">
+          <h1 class="main__title">Our Products</h1>
+          <div class="main__text main__text_pages">
+            Innovative hydroponic equipment designed for optimal growing performance
+          </div>
+        </div>
+      </section>
+      <section class="page__products products">
+        <div class="products__container">
+          <article class="products__item item-products">
+            <div class="item-products__column">
+              <div class="item-products__images">
+                <!-- Primary product image will go here -->
+                <div class="item-products__main-image">
+                  <img id="main-product-image" src="img/products/main_product.jpg" alt="Stacked Vertical Farm Module" />
+                </div>
+                <!-- Additional product images gallery will go here -->
+                <div class="item-products__gallery">
+                  <div class="item-products__gallery-image">
+                    <img src="img/products/main_product.jpg" alt="Stacked Vertical Farm Module" onclick="changeMainImage('img/products/main_product.jpg')" />
+                  </div>
+                  <div class="item-products__gallery-image">
+                    <img src="img/products/detail1.jpg" alt="Plants growing in hydroponic system" onclick="changeMainImage('img/products/detail1.jpg')" />
+                  </div>
+                </div>
+              </div>
+              <div class="item-products__content">
+                <h2 class="item-products__title title">Stacked Vertical Farm Module</h2>
+                <div class="item-products__specs">
+                  <div class="item-products__spec">
+                    <span class="item-products__spec-label">Dimensions:</span>
+                    <span class="item-products__spec-value">180cm × 60cm × 200cm (L×W×H)</span>
+                  </div>
+                  <div class="item-products__spec">
+                    <span class="item-products__spec-label">Capacity:</span>
+                    <span class="item-products__spec-value">72 Plants (24 per floor) + Nursery</span>
+                  </div>
+                  <div class="item-products__spec">
+                    <span class="item-products__spec-label">Power:</span>
+                    <span class="item-products__spec-value">700W Solar-powered with Battery Backup</span>
+                  </div>
+                  <div class="item-products__spec">
+                    <span class="item-products__spec-label">Lighting:</span>
+                    <span class="item-products__spec-value">40 Energy-efficient LED Grow Lights</span>
+                  </div>
+                </div>
+                <div class="item-products__description">
+                  <h3 class="item-products__subtitle">Product Description</h3>
+                  <p>
+                    The Stacked Vertical Farm Module is our flagship hydroponic growing system designed for maximum efficiency in minimal space. Each self-contained unit features three growing floors plus a dedicated nursery area on the bottom level, allowing you to cultivate plants at various growth stages simultaneously.
+                  </p>
+                  <p>
+                    Completely modular and scalable, these units can function independently or connect with additional modules to create larger growing operations. The system is powered by solar panels with sun-tracking technology and battery storage, making it an environmentally friendly and energy-efficient solution for year-round indoor farming.
+                  </p>
+                </div>
+                <div class="item-products__features">
+                  <h3 class="item-products__subtitle">Key Features</h3>
+                  <ul class="item-products__features-list">
+                    <li>Comprehensive environmental monitoring (EC, TDS, temperature, humidity, CO₂)</li>
+                    <li>ESP32-WROOM32 microcontroller for intelligent system management</li>
+                    <li>Solar-powered with battery backup</li>
+                    <li class="feature-indented">Proprietary algae prevention technology</li>
+                    <li class="feature-indented">Automated nutrient and pH management</li>
+                    <li class="feature-indented">5-year historical data access via Waraf platform</li>
+                  </ul>
+                </div>
+                <a href="contact.html" class="item-products__button button">Request Product Information</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="page__outro outro outro_products">
+        <div class="outro__container">
+          <h2 class="outro__title title">Interested in Our Products?</h2>
+          <div class="outro__text">
+          </div>
+          <a href="contact.html" class="outro__button button">Connect With Our Team</a>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="footer__container">
+        <a href="#" class="footer__policy">Privacy Policy – Terms & Conditions</a>
+        <a href="" class="footer__logo logo">Waraf</a>
+        <div class="footer__copyright">Copyright © 2025 Waraf – All Rights Reserved</div>
+      </div>
+    </footer>
+  </div>
+  
+  <!-- Auth Modal -->
+  <div class="auth-modal" id="auth-modal">
+    <div class="auth-container">
+      <div class="auth-close" id="auth-close">&times;</div>
+      <h2 class="auth-title">Welcome to Waraf</h2>
+      
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="login-tab">Login</div>
+        <div class="auth-tab" id="register-tab">Register</div>
+      </div>
+      
+      <form class="auth-form active" id="login-form">
+        <div class="auth-input-group">
+          <label class="auth-label" for="login-email">Email</label>
+          <input type="email" id="login-email" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="auth-input" required>
+        </div>
+        <button type="submit" class="auth-button">Login</button>
+        <div class="auth-message"></div>
+        
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <div class="auth-divider-text">or</div>
+          <div class="auth-divider-line"></div>
+        </div>
+        
+        <button type="button" class="auth-social-button google-login-button">
+          <svg class="auth-social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+      
+      <form class="auth-form" id="register-form">
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-email">Email</label>
+          <input type="email" id="register-email" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-password">Password</label>
+          <input type="password" id="register-password" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-confirm-password">Confirm Password</label>
+          <input type="password" id="register-confirm-password" class="auth-input" required>
+        </div>
+        <button type="submit" class="auth-button">Create Account</button>
+        <div class="auth-message"></div>
+        
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <div class="auth-divider-text">or</div>
+          <div class="auth-divider-line"></div>
+        </div>
+        
+        <button type="button" class="auth-social-button google-login-button">
+          <svg class="auth-social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <script type="module" src="js/script.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+
+</html> 

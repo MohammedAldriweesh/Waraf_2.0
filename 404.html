@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+  <title>Waraf | Page Not Found</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .page__not-found {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 50px 20px;
+    }
+    
+    .not-found__container {
+      max-width: 600px;
+    }
+    
+    .not-found__title {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      color: var(--accent-color);
+    }
+    
+    .not-found__subtitle {
+      font-size: 1.5rem;
+      margin-bottom: 30px;
+      color: #fff;
+    }
+    
+    .not-found__text {
+      font-size: 1.1rem;
+      margin-bottom: 40px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a href="index.html" class="header__logo logo">Waraf</a>
+        <div class="header__navigation">
+          <div class="header__menu menu">
+            <nav class="menu__body">
+              <ul class="menu__list">
+                <li class="menu__item"><a href="index.html" class="menu__link">Home</a></li>
+                <li class="menu__item"><a href="about.html" class="menu__link">About</a></li>
+                <li class="menu__item"><a href="services.html" class="menu__link">Solutions</a></li>
+                <li class="menu__item"><a href="products.html" class="menu__link">Products</a></li>
+                <li class="menu__item"><a href="contact.html" class="menu__link">Contact</a></li>
+              </ul>
+              <a href="#" class="actions-header__button" id="login-button">Login</a>
+            </nav>
+          </div>
+          <div class="header__actions actions-header">
+            <button type="button" class="menu__icon icon-menu"><span></span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <section class="page__not-found">
+        <div class="not-found__container">
+          <h1 class="not-found__title">404</h1>
+          <h2 class="not-found__subtitle">Page Not Found</h2>
+          <p class="not-found__text">
+            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+            Please check the URL for mistakes and try again.
+          </p>
+          <a href="index.html" class="button">Return to Home</a>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="footer__container">
+        <a href="#" class="footer__policy">Privacy Policy – Terms & Conditions</a>
+        <a href="" class="footer__logo logo">Waraf</a>
+        <div class="footer__copyright">Copyright © 2025 Waraf – All Rights Reserved</div>
+      </div>
+    </footer>
+  </div>
+  
+  <script type="module" src="js/script.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+
+</html>

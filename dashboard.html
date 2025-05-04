@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+  <title>Waraf | Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+
+<body>
+  <div class="wrapper">
+    <header class="header">
+      <div class="header__container">
+        <a href="index.html" class="header__logo logo">Waraf</a>
+        <div class="header__navigation">
+          <div class="header__menu menu">
+            <nav class="menu__body">
+              <ul class="menu__list">
+                <li class="menu__item"><a href="index.html" class="menu__link">Home</a></li>
+                <li class="menu__item"><a href="about.html" class="menu__link">About</a></li>
+                <li class="menu__item"><a href="services.html" class="menu__link">Solutions</a></li>
+                <li class="menu__item"><a href="products.html" class="menu__link">Products</a></li>
+                <li class="menu__item"><a href="contact.html" class="menu__link">Contact</a></li>
+              </ul>
+              <div class="user-dropdown" id="user-dropdown" style="display: none;">
+                <div class="user-button">
+                  <div class="user-avatar" id="user-avatar">U</div>
+                </div>
+                <div class="user-menu" id="user-menu">
+                  <a href="dashboard.html" class="user-menu-item">Dashboard</a>
+                  <div class="user-menu-divider"></div>
+                  <a href="#" class="user-menu-item" id="logout-button">Log Out</a>
+                </div>
+              </div>
+              <a href="#" class="actions-header__button" id="login-button">Login</a>
+            </nav>
+          </div>
+          <div class="header__actions actions-header">
+            <button type="button" class="menu__icon icon-menu"><span></span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="page page__dashboard">
+      <section class="dashboard">
+        <div class="dashboard__container">
+          <div class="dashboard__header">
+            <h1 class="dashboard__title">Your Dashboard</h1>
+            <div class="dashboard__actions">
+              <a href="#" class="dashboard__button dashboard__button--primary" id="add-product-button">Add Product</a>
+            </div>
+          </div>
+          <div class="dashboard__empty">
+            <h2 class="dashboard__empty-title">No Products Added Yet</h2>
+            <p class="dashboard__empty-text">
+              You haven't added any products to your dashboard. Click the "Add Product" button to get started with monitoring your Waraf hydroponic systems.
+            </p>
+            <a href="#" class="dashboard__button dashboard__button--primary" id="add-product-button-empty">Add Your First Product</a>
+          </div>
+          
+          <!-- This section will be hidden by default and shown when products are added -->
+          <div class="dashboard__products" style="display: none;">
+            <!-- Products will be added here dynamically -->
+          </div>
+          
+          <!-- Product Selection Section - Hidden by default, shown when Add Product is clicked -->
+          <div class="product-selection" id="product-selection" style="display: none;">
+            <div class="product-selection__header">
+              <h2 class="product-selection__title">Select Your Product</h2>
+              <p class="product-selection__text">Choose the Waraf product you'd like to add to your dashboard.</p>
+            </div>
+            <div class="product-selection__options">
+              <div class="product-option" id="stacked-module">
+                <div class="product-option__image">
+                  <img src="images/Home/Home 1.jpg" alt="Stacked Vertical Farm Module">
+                </div>
+                <div class="product-option__content">
+                  <h3 class="product-option__title">Stacked Vertical Farm Module</h3>
+                  <p class="product-option__description">Our flagship stacked hydroponic system with three growing floors and a nursery</p>
+                  <button class="product-option__button">Select This Product</button>
+                </div>
+              </div>
+              <div class="product-option" id="tower-module">
+                <div class="product-option__image">
+                  <img src="images/Dashboard/Towers.jpg" alt="Tower Vertical Farm Module">
+                </div>
+                <div class="product-option__content">
+                  <h3 class="product-option__title">Tower Vertical Farm Module</h3>
+                  <p class="product-option__description">Space-efficient vertical tower system ideal for leafy greens and herbs</p>
+                  <button class="product-option__button">Select This Product</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="footer__container">
+        <a href="#" class="footer__policy">Privacy Policy – Terms & Conditions</a>
+        <a href="" class="footer__logo logo">Waraf</a>
+        <div class="footer__copyright">Copyright © 2025 Waraf – All Rights Reserved</div>
+      </div>
+    </footer>
+  </div>
+  
+  <!-- Auth Modal -->
+  <div class="auth-modal" id="auth-modal">
+    <div class="auth-container">
+      <div class="auth-close" id="auth-close">&times;</div>
+      <h2 class="auth-title">Welcome to Waraf</h2>
+      
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="login-tab">Login</div>
+        <div class="auth-tab" id="register-tab">Register</div>
+      </div>
+      
+      <form class="auth-form active" id="login-form">
+        <div class="auth-input-group">
+          <label class="auth-label" for="login-email">Email</label>
+          <input type="email" id="login-email" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="auth-input" required>
+        </div>
+        <button type="submit" class="auth-button">Login</button>
+        <div class="auth-message"></div>
+        
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <div class="auth-divider-text">or</div>
+          <div class="auth-divider-line"></div>
+        </div>
+        
+        <button type="button" class="auth-social-button google-login-button">
+          <svg class="auth-social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+      
+      <form class="auth-form" id="register-form">
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-email">Email</label>
+          <input type="email" id="register-email" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-password">Password</label>
+          <input type="password" id="register-password" class="auth-input" required>
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label" for="register-confirm-password">Confirm Password</label>
+          <input type="password" id="register-confirm-password" class="auth-input" required>
+        </div>
+        <button type="submit" class="auth-button">Create Account</button>
+        <div class="auth-message"></div>
+        
+        <div class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <div class="auth-divider-text">or</div>
+          <div class="auth-divider-line"></div>
+        </div>
+        
+        <button type="button" class="auth-social-button google-login-button">
+          <svg class="auth-social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Add the Product ID Verification Modal right before the closing </body> tag -->
+  <!-- Product ID Verification Modal -->
+  <div class="product-settings-modal" id="product-id-modal">
+    <div class="product-settings-container" style="max-width: 500px;">
+      <div class="product-settings-close" id="id-modal-close">&times;</div>
+      <h2 class="product-settings-title">Verify Your Product</h2>
+      <div class="product-settings-content">
+        <div class="product-settings-header" style="flex-direction: column; align-items: center; text-align: center;">
+          <div class="product-settings-image" style="margin-right: 0; margin-bottom: 20px;">
+            <img id="id-product-image" src="" alt="Product Image">
+          </div>
+          <div class="product-settings-info" style="text-align: center;">
+            <h3 id="id-product-name">Product Name</h3>
+            <p style="color: rgba(255,255,255,0.8); margin-top: 10px;">Please enter your product ID to continue</p>
+          </div>
+        </div>
+        
+        <div class="product-settings-section" style="margin-top: 20px;">
+          <p style="text-align: center; margin-bottom: 20px;">
+            Enter the ID number found on your physical Waraf product to connect it to your dashboard.
+          </p>
+          
+          <div style="margin-bottom: 25px;">
+            <div style="position: relative; margin-bottom: 5px;">
+              <input type="text" id="product-id-input" placeholder="Enter Product ID" style="width: 100%; padding: 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: white; font-size: 16px; text-align: center; letter-spacing: 2px;">
+            </div>
+            <div id="id-validation-message" style="color: #ff5757; font-size: 14px; margin-top: 8px; text-align: center; min-height: 20px; display: none;">
+              Invalid product ID. Please try again.
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(56, 181, 147, 0.08); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+            <div>
+              <div style="font-weight: 600; color: rgba(255, 255, 255, 0.9);">Valid IDs:</div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+              <div style="display: flex; align-items: center; background: rgba(56, 181, 147, 0.15); padding: 8px 12px; border-radius: 6px;">
+                <span style="font-weight: 500; color: #38b593;">000</span>
+                <span style="margin-left: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.8);">Stacked Module</span>
+              </div>
+              <div style="display: flex; align-items: center; background: rgba(56, 181, 147, 0.15); padding: 8px 12px; border-radius: 6px;">
+                <span style="font-weight: 500; color: #38b593;">001</span>
+                <span style="margin-left: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.8);">Tower Module</span>
+              </div>
+            </div>
+          </div>
+          
+          <button class="product-settings-button product-settings-button--primary" id="verify-product-button" style="width: 100%;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            Verify Product
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Product Settings Modal -->
+  <div class="product-settings-modal" id="product-settings-modal">
+    <div class="product-settings-container">
+      <div class="product-settings-close" id="settings-close">&times;</div>
+      <h2 class="product-settings-title">Product Settings</h2>
+      <div class="product-settings-content">
+        <div class="product-settings-header">
+          <div class="product-settings-image">
+            <img id="settings-product-image" src="" alt="Product Image">
+          </div>
+          <div class="product-settings-info">
+            <h3 id="settings-product-name">Product Name</h3>
+            <p id="settings-product-id">ID: ---</p>
+            <div class="product-stats-summary" style="margin-top: 15px; display: flex; gap: 15px;">
+              <div style="display: flex; align-items: center; color: rgba(255,255,255,0.8);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><path d="M12 3v18M3 8h18M3 16h18"></path></svg>
+                <span id="settings-product-plants">-- Plants</span>
+              </div>
+              <div style="display: flex; align-items: center; color: rgba(255,255,255,0.8);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path></svg>
+                <span>Healthy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="product-settings-section">
+          <h4 class="product-settings-section-title">Notification Settings</h4>
+          <div class="settings-toggle-group">
+            <label class="settings-toggle">
+              <input type="checkbox" checked>
+              <span class="settings-toggle-slider"></span>
+              <span class="settings-toggle-label">Temperature Alerts</span>
+            </label>
+          </div>
+          <div class="settings-toggle-group">
+            <label class="settings-toggle">
+              <input type="checkbox" checked>
+              <span class="settings-toggle-slider"></span>
+              <span class="settings-toggle-label">Humidity Alerts</span>
+            </label>
+          </div>
+          <div class="settings-toggle-group">
+            <label class="settings-toggle">
+              <input type="checkbox" checked>
+              <span class="settings-toggle-slider"></span>
+              <span class="settings-toggle-label">pH Level Alerts</span>
+            </label>
+          </div>
+          <div class="settings-toggle-group">
+            <label class="settings-toggle">
+              <input type="checkbox" checked>
+              <span class="settings-toggle-slider"></span>
+              <span class="settings-toggle-label">Maintenance Reminders</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="product-settings-section">
+          <h4 class="product-settings-section-title">Alert Thresholds</h4>
+          <div class="settings-range-group">
+            <label class="settings-range-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+              Temperature (°C)
+            </label>
+            <div class="settings-range-inputs">
+              <div class="settings-range-input">
+                <label>Min</label>
+                <input type="number" value="18" min="10" max="30">
+              </div>
+              <div class="settings-range-input">
+                <label>Max</label>
+                <input type="number" value="26" min="20" max="40">
+              </div>
+            </div>
+          </div>
+          <div class="settings-range-group">
+            <label class="settings-range-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+              Humidity (%)
+            </label>
+            <div class="settings-range-inputs">
+              <div class="settings-range-input">
+                <label>Min</label>
+                <input type="number" value="50" min="30" max="60">
+              </div>
+              <div class="settings-range-input">
+                <label>Max</label>
+                <input type="number" value="80" min="60" max="95">
+              </div>
+            </div>
+          </div>
+          <div class="settings-range-group">
+            <label class="settings-range-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M8 3v3a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V3"></path><line x1="12" y1="15" x2="12" y2="3"></line><path d="M6 21h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2z"></path></svg>
+              pH Level
+            </label>
+            <div class="settings-range-inputs">
+              <div class="settings-range-input">
+                <label>Min</label>
+                <input type="number" value="5.5" min="4.0" max="6.5" step="0.1">
+              </div>
+              <div class="settings-range-input">
+                <label>Max</label>
+                <input type="number" value="6.5" min="6.0" max="7.5" step="0.1">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="product-settings-section">
+          <h4 class="product-settings-section-title">Extension Management</h4>
+          <p>Add additional extensions to expand your growing capacity. Each added extension will increase the total plant capacity of your system.</p>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(56, 181, 147, 0.08); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div>
+              <div style="font-weight: 600; margin-bottom: 5px;">Current Capacity</div>
+              <div style="font-size: 1.2rem; display: flex; align-items: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38b593" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span id="module-plant-count">72</span> Plants
+              </div>
+            </div>
+            <div>
+              <div style="font-weight: 600; margin-bottom: 5px;">Module Type</div>
+              <div id="module-type-display" style="font-size: 1.2rem; color: var(--accent-color);">Stacked</div>
+            </div>
+          </div>
+          <button class="product-settings-button product-settings-button--primary" id="add-module-button" style="width: 100%;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add Extension
+          </button>
+          <button class="product-settings-button product-settings-button--danger" id="delete-module-button" style="width: 100%; margin-top: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Delete Extension
+          </button>
+        </div>
+        
+        <div class="product-settings-actions">
+          <button class="product-settings-button product-settings-button--danger" id="delete-product-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Delete
+          </button>
+          <div class="product-settings-actions-right">
+            <button class="product-settings-button product-settings-button--secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M3 2v6h6"></path><path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path></svg>
+              Reset to Default
+            </button>
+            <button class="product-settings-button product-settings-button--primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirmation Dialog -->
+        <div class="confirmation-dialog" id="delete-confirmation">
+          <div class="confirmation-dialog-content">
+            <h4 class="confirmation-title">Delete Product?</h4>
+            <p class="confirmation-message">
+              You are about to remove this product from your dashboard. This action cannot be undone and all monitoring data for this product will be permanently deleted.
+            </p>
+            <div class="confirmation-actions">
+              <button class="confirmation-button confirmation-button--cancel" id="cancel-delete">Cancel</button>
+              <button class="confirmation-button confirmation-button--confirm" id="confirm-delete">Delete Permanently</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+  .shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+  }
+
+  @keyframes shake {
+    10%, 90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+    20%, 80% {
+      transform: translate3d(2px, 0, 0);
+    }
+    30%, 50%, 70% {
+      transform: translate3d(-3px, 0, 0);
+    }
+    40%, 60% {
+      transform: translate3d(3px, 0, 0);
+    }
+  }
+  </style>
+  
+  <script type="module" src="js/script.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/dashboard.js"></script>
+  
+  <script type="module">
+    // Minimal dashboard initialization - most functionality moved to dashboard.js
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set up global variables for compatibility with existing code
+      window.MAX_PRODUCTS = 12;
+      window.productCount = 0;
+      window.addedProducts = [];
+      window.showingProducts = false;
+    });
+  </script>
+  
+  <script type="module">
+  // Add product ID verification functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    // Product selection elements
+    const productOptions = document.querySelectorAll('.product-option');
+    
+    // ID Verification Modal Elements
+    const idModal = document.getElementById('product-id-modal');
+    const idModalClose = document.getElementById('id-modal-close');
+    const idProductImage = document.getElementById('id-product-image');
+    const idProductName = document.getElementById('id-product-name');
+    const productIdInput = document.getElementById('product-id-input');
+    const idValidationMessage = document.getElementById('id-validation-message');
+    const verifyProductButton = document.getElementById('verify-product-button');
+    
+    // Settings Modal Elements
+    const settingsModal = document.getElementById('product-settings-modal');
+    const settingsClose = document.getElementById('settings-close');
+    const productImage = document.getElementById('settings-product-image');
+    const productName = document.getElementById('settings-product-name');
+    const productId = document.getElementById('settings-product-id');
+    const saveButton = document.querySelector('.product-settings-button--primary:not(#add-module-button):not(#verify-product-button)');
+    const resetButton = document.querySelector('.product-settings-button--secondary');
+    const deleteButton = document.getElementById('delete-product-button');
+    const deleteConfirmation = document.getElementById('delete-confirmation');
+    const cancelDelete = document.getElementById('cancel-delete');
+    const confirmDelete = document.getElementById('confirm-delete');
+    let currentProductCard = null;
+    
+    // Track current product selection
+    let currentProductSelection = null;
+    
+    // Close ID modal when X is clicked
+    idModalClose.addEventListener('click', () => {
+      idModal.classList.remove('active');
+      // Reset validation state
+      idValidationMessage.style.display = 'none';
+      productIdInput.value = '';
+    });
+    
+    // Close ID modal when clicking outside
+    window.addEventListener('click', (event) => {
+      if (event.target === idModal) {
+        idModal.classList.remove('active');
+        // Reset validation state
+        idValidationMessage.style.display = 'none';
+        productIdInput.value = '';
+      }
+    });
+    
+    // Settings Modal: Close modal on X click
+    if (settingsClose) {
+      settingsClose.addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+        // Also hide confirmation dialog if visible
+        if (deleteConfirmation) {
+          deleteConfirmation.classList.remove('active');
+        }
+      });
+    }
+    
+    // Settings Modal: Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+      if (event.target === settingsModal) {
+        settingsModal.classList.remove('active');
+        // Also hide confirmation dialog if visible
+        if (deleteConfirmation) {
+          deleteConfirmation.classList.remove('active');
+        }
+      }
+    });
+    
+    // Handle product selection - Show ID verification modal
+    productOptions.forEach(option => {
+      const selectButton = option.querySelector('.product-option__button');
+      
+      if (selectButton) {
+        selectButton.addEventListener('click', () => {
+          // Get product info
+          const productId = option.id;
+          const productName = option.querySelector('.product-option__title').textContent;
+          const productImage = option.querySelector('.product-option__image img').src;
+          
+          // Store the current selection for later use
+          currentProductSelection = {
+            id: productId,
+            name: productName,
+            image: productImage
+          };
+          
+          // Set the product details in the ID verification modal
+          idProductImage.src = productImage;
+          idProductName.textContent = productName;
+          
+          // Show the ID verification modal
+          idModal.classList.add('active');
+          // Focus on the input field
+          setTimeout(() => {
+            productIdInput.focus();
+          }, 300);
+        });
+      }
+    });
+    
+    // Settings Modal: Delegate event listener for all settings buttons (including future ones)
+    document.addEventListener('click', (event) => {
+      const settingsButton = event.target.closest('.product-card__button--secondary');
+      if (settingsButton) {
+        event.preventDefault();
+        
+        // Get the product card
+        const productCard = settingsButton.closest('.product-card');
+        if (!productCard) return;
+        
+        // Store reference to current product card
+        currentProductCard = productCard;
+        
+        // Get product information from the card
+        const cardImage = productCard.querySelector('.product-card__image img');
+        const cardTitle = productCard.querySelector('.product-card__title');
+        
+        // Set product information in the modal
+        if (cardImage && cardTitle) {
+          productImage.src = cardImage.src;
+          productName.textContent = cardTitle.textContent;
+          
+          // Check if it's the special test prototype
+          const isTestPrototype = cardTitle.textContent === "testPrototype";
+          
+          // Set the product ID display (show special ID for test prototype)
+          const displayId = isTestPrototype ? '1010000' : productCard.id;
+          productId.textContent = `ID: ${displayId}`;
+          
+          // Get plants count from the product card
+          const plantsValue = productCard.querySelector('.product-card__stat:nth-child(4) .product-card__stat-value').textContent;
+          document.getElementById('settings-product-plants').textContent = plantsValue + ' Plants';
+          
+          // Set the module plant count and type
+          document.getElementById('module-plant-count').textContent = plantsValue;
+          
+          // For type determination, treat testPrototype as a Stacked Module
+          const productType = isTestPrototype ? "Stacked" : (cardTitle.textContent.includes('Tower') ? 'Tower' : 'Stacked');
+          document.getElementById('module-type-display').textContent = productType;
+        }
+        
+        // Show the modal
+        settingsModal.classList.add('active');
+      }
+    });
+    
+    // Add Module functionality
+    const addModuleButton = document.getElementById('add-module-button');
+    if (addModuleButton) {
+      addModuleButton.addEventListener('click', () => {
+        if (currentProductCard) {
+          // Get the product title to determine the type
+          const productTitle = currentProductCard.querySelector('.product-card__title').textContent;
+          
+          // Find the plants stat value element
+          const plantsValueElement = currentProductCard.querySelector('.product-card__stat:nth-child(4) .product-card__stat-value');
+          
+          if (plantsValueElement) {
+            // Get current plants count
+            let currentPlants = parseInt(plantsValueElement.textContent, 10);
+            
+            // Determine how many plants to add based on the product type
+            // For testPrototype, treat it like a Stacked Module (72 plants)
+            const isTestPrototype = productTitle === "testPrototype";
+            const plantsToAdd = productTitle.includes('Tower') ? 36 : (isTestPrototype ? 72 : 72);
+            
+            // Update the plants count
+            currentPlants += plantsToAdd;
+            plantsValueElement.textContent = currentPlants.toString();
+            
+            // Update the displayed plants count in the settings modal
+            document.getElementById('settings-product-plants').textContent = currentPlants + ' Plants';
+            document.getElementById('module-plant-count').textContent = currentPlants;
+            
+            // Dispatch event to update the product
+            window.dispatchEvent(new CustomEvent('productUpdated', {
+              detail: {
+                id: currentProductCard.id,
+                plants: currentPlants
+              }
+            }));
+            
+            // Create a flash effect on the module count to highlight the change
+            const moduleCountElement = document.getElementById('module-plant-count');
+            moduleCountElement.style.transition = 'all 0.3s ease';
+            moduleCountElement.style.backgroundColor = 'rgba(56, 181, 147, 0.3)';
+            moduleCountElement.style.padding = '3px 8px';
+            moduleCountElement.style.borderRadius = '4px';
+            
+            setTimeout(() => {
+              moduleCountElement.style.backgroundColor = 'transparent';
+              moduleCountElement.style.padding = '0';
+              
+              // Show success message
+              const button = addModuleButton;
+              const originalText = button.innerHTML;
+              
+              button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Extension Added!
+              `;
+              button.disabled = true;
+              
+              setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+              }, 2000);
+            }, 1000);
+          }
+        }
+      });
+    }
+    
+    // Update the delete module functionality
+    const deleteModuleButton = document.getElementById('delete-module-button');
+    if (deleteModuleButton) {
+      deleteModuleButton.addEventListener('click', () => {
+        if (currentProductCard) {
+          // Get the product title to determine the type
+          const productTitle = currentProductCard.querySelector('.product-card__title').textContent;
+          
+          // Find the plants stat value element
+          const plantsValueElement = currentProductCard.querySelector('.product-card__stat:nth-child(4) .product-card__stat-value');
+          
+          if (plantsValueElement) {
+            // Get current plants count
+            let currentPlants = parseInt(plantsValueElement.textContent, 10);
+            
+            // Determine the base plant count based on the product type
+            // For testPrototype, treat it like a Stacked Module (72 plants)
+            const isTestPrototype = productTitle === "testPrototype";
+            const basePlantCount = productTitle.includes('Tower') ? 36 : (isTestPrototype ? 72 : 72);
+            
+            // Only allow deletion if there's more than the base module
+            if (currentPlants <= basePlantCount) {
+              // Show error feedback
+              deleteModuleButton.classList.add('shake');
+              setTimeout(() => {
+                deleteModuleButton.classList.remove('shake');
+              }, 500);
+              return;
+            }
+            
+            // Determine how many plants to remove based on the product type
+            const plantsToRemove = productTitle.includes('Tower') ? 36 : (isTestPrototype ? 72 : 72);
+            
+            // Update the plants count
+            currentPlants -= plantsToRemove;
+            plantsValueElement.textContent = currentPlants.toString();
+            
+            // Update the displayed plants count in the settings modal
+            document.getElementById('settings-product-plants').textContent = currentPlants + ' Plants';
+            document.getElementById('module-plant-count').textContent = currentPlants;
+            
+            // Dispatch event to update the product in localStorage
+            window.dispatchEvent(new CustomEvent('productUpdated', {
+              detail: {
+                id: currentProductCard.id,
+                plants: currentPlants
+              }
+            }));
+            
+            // Create a flash effect on the module count to highlight the change
+            const moduleCountElement = document.getElementById('module-plant-count');
+            moduleCountElement.style.transition = 'all 0.3s ease';
+            moduleCountElement.style.backgroundColor = 'rgba(255, 87, 87, 0.3)';
+            moduleCountElement.style.padding = '3px 8px';
+            moduleCountElement.style.borderRadius = '4px';
+            
+            setTimeout(() => {
+              moduleCountElement.style.backgroundColor = 'transparent';
+              moduleCountElement.style.padding = '0';
+              
+              // Show success message
+              const button = deleteModuleButton;
+              const originalText = button.innerHTML;
+              
+              button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Extension Removed!
+              `;
+              button.disabled = true;
+              
+              setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+              }, 2000);
+            }, 1000);
+          }
+        }
+      });
+    }
+    
+    // Settings Modal: Handle save button
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        if (currentProductCard) {
+          // Collect all settings values
+          const settings = {
+            id: currentProductCard.id,
+            notificationSettings: {
+              temperature: settingsModal.querySelector('.settings-toggle:nth-child(1) input').checked,
+              humidity: settingsModal.querySelector('.settings-toggle:nth-child(2) input').checked,
+              ph: settingsModal.querySelector('.settings-toggle:nth-child(3) input').checked,
+              maintenance: settingsModal.querySelector('.settings-toggle:nth-child(4) input').checked
+            },
+            thresholds: {
+              temperature: {
+                min: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(1) .settings-range-input:nth-child(1) input').value),
+                max: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(1) .settings-range-input:nth-child(2) input').value)
+              },
+              humidity: {
+                min: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(2) .settings-range-input:nth-child(1) input').value),
+                max: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(2) .settings-range-input:nth-child(2) input').value)
+              },
+              ph: {
+                min: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(3) .settings-range-input:nth-child(1) input').value),
+                max: parseFloat(settingsModal.querySelector('.settings-range-group:nth-child(3) .settings-range-input:nth-child(2) input').value)
+              }
+            }
+          };
+          
+          // Dispatch event to save settings in localStorage
+          window.dispatchEvent(new CustomEvent('productUpdated', {
+            detail: settings
+          }));
+          
+          // Show success message
+          alert('Settings saved successfully!');
+          settingsModal.classList.remove('active');
+        }
+      });
+    }
+    
+    // Settings Modal: Handle reset button
+    if (resetButton) {
+      resetButton.addEventListener('click', () => {
+        // Reset form to default values
+        const checkboxes = settingsModal.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.checked = true);
+        
+        // Reset temperature ranges
+        settingsModal.querySelector('.settings-range-group:nth-child(1) .settings-range-input:nth-child(1) input').value = "18";
+        settingsModal.querySelector('.settings-range-group:nth-child(1) .settings-range-input:nth-child(2) input').value = "26";
+        
+        // Reset humidity ranges
+        settingsModal.querySelector('.settings-range-group:nth-child(2) .settings-range-input:nth-child(1) input').value = "50";
+        settingsModal.querySelector('.settings-range-group:nth-child(2) .settings-range-input:nth-child(2) input').value = "80";
+        
+        // Reset pH ranges
+        settingsModal.querySelector('.settings-range-group:nth-child(3) .settings-range-input:nth-child(1) input').value = "5.5";
+        settingsModal.querySelector('.settings-range-group:nth-child(3) .settings-range-input:nth-child(2) input').value = "6.5";
+      });
+    }
+    
+    // Settings Modal: Handle delete button
+    if (deleteButton) {
+      deleteButton.addEventListener('click', () => {
+        // Show confirmation dialog with animation
+        deleteConfirmation.style.display = 'flex';
+        setTimeout(() => {
+          deleteConfirmation.classList.add('active');
+        }, 10);
+      });
+    }
+    
+    // Settings Modal: Handle confirmation dialog
+    if (cancelDelete) {
+      cancelDelete.addEventListener('click', (e) => {
+        e.preventDefault();
+        deleteConfirmation.classList.remove('active');
+        setTimeout(() => {
+          deleteConfirmation.style.display = 'none';
+        }, 300);
+      });
+    }
+    
+    if (confirmDelete) {
+      confirmDelete.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Remove product from dashboard
+        if (currentProductCard) {
+          // Dispatch event to notify dashboard.js about the product deletion
+          window.dispatchEvent(new CustomEvent('productDeleted', {
+            detail: {
+              id: currentProductCard.id
+            }
+          }));
+          
+          // Close the settings modal and confirmation dialog
+          settingsModal.classList.remove('active');
+          deleteConfirmation.classList.remove('active');
+        }
+      });
+    }
+    
+    // Handle product ID verification
+    verifyProductButton.addEventListener('click', verifyAndAddProduct);
+    
+    // Also verify on Enter key
+    productIdInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        verifyAndAddProduct();
+      }
+    });
+    
+    function verifyAndAddProduct() {
+      const enteredId = productIdInput.value.trim();
+      
+      // Check if the ID is valid based on product type
+      let isValid = false;
+      let isTestPrototype = false;
+      
+      if (currentProductSelection) {
+        if (currentProductSelection.id === 'stacked-module' && enteredId === '000') {
+          isValid = true;
+        } else if (currentProductSelection.id === 'stacked-module' && enteredId === '1010000') {
+          // Secret test prototype ID
+          isValid = true;
+          isTestPrototype = true;
+        } else if (currentProductSelection.id === 'tower-module' && enteredId === '001') {
+          isValid = true;
+        }
+      }
+      
+      if (isValid) {
+        // Hide validation message if it was shown
+        idValidationMessage.style.display = 'none';
+        
+        // Close the ID modal
+        idModal.classList.remove('active');
+        
+        // Hide the product selection screen
+        document.getElementById('product-selection').style.display = 'none';
+        
+        // Generate a unique ID for the product
+        const uniqueId = `product-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        // Generate random but realistic values for monitoring stats
+        const temp = (Math.random() * 5 + 20).toFixed(1);
+        const humidity = Math.floor(Math.random() * 20 + 60);
+        const pH = (Math.random() * 1 + 5.5).toFixed(1);
+        const plants = currentProductSelection.id === 'tower-module' ? '36' : '72';
+        
+        // Determine product name (use test prototype if applicable)
+        let productName = currentProductSelection.name;
+        if (isTestPrototype) {
+          productName = "testPrototype";
+        }
+        
+        // Create product object
+        const newProduct = {
+          id: uniqueId,
+          type: currentProductSelection.id,
+          name: productName,
+          image: currentProductSelection.image,
+          temperature: temp,
+          humidity: humidity,
+          pH: pH,
+          plants: plants,
+          productId: enteredId,
+          isTestPrototype: isTestPrototype,
+          dateAdded: new Date().toISOString()
+        };
+        
+        // Dispatch event to notify dashboard.js about the new product
+        window.dispatchEvent(new CustomEvent('productAdded', {
+          detail: newProduct
+        }));
+        
+        // Reset the input field
+        productIdInput.value = '';
+      } else {
+        // Show validation error
+        idValidationMessage.style.display = 'block';
+        idValidationMessage.textContent = 'Invalid product ID. Please try again.';
+        
+        // Shake the input field
+        productIdInput.classList.add('shake');
+        setTimeout(() => {
+          productIdInput.classList.remove('shake');
+        }, 500);
+      }
+    }
+  });
+  </script>
+</body>
+
+</html> 
