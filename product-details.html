@@ -2387,9 +2387,7 @@
                   <div class="control-section-header">
                     <div class="control-section-icon">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        <path d="M14.05 2a9 9 0 0 1 8 7.94"></path>
-                        <path d="M14.05 6A5 5 0 0 1 18 10"></path>
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
                       </svg>
                     </div>
                     <h2 class="control-section-title">Main Pump</h2>
@@ -2751,12 +2749,15 @@
                                 const dispenserData = {
                                   flowRate: flowRateValue,
                                   pHdown: {
+                                    amount: phDownValue,
                                     time: phDownTime
                                   },
                                   solutionA: {
+                                    amount: solutionAValue,
                                     time: solutionATime
                                   },
                                   solutionB: {
+                                    amount: solutionBValue,
                                     time: solutionBTime
                                   }
                                 };
@@ -2773,12 +2774,12 @@
                                     
                                     // Show success notification
                                     dispensersToast.classList.add('show');
-                                    applyButton.classList.remove('applying');
                                     
-                                    // Hide notification after 3 seconds
-                                    setTimeout(() => {
-                                      dispensersToast.classList.remove('show');
-                                    }, 3000);
+                                    // Now handle the relay control for each solution
+                                    controlDispenserRelays(firebaseDB, db, solutionATime, solutionBTime, phDownTime);
+                                    
+                                    // Keep the applying state until all dispensing operations are complete
+                                    // The applying state will be removed by the controlDispenserRelays function
                                   })
                                   .catch((error) => {
                                     console.error('Error updating dispenser settings:', error);
@@ -2806,6 +2807,152 @@
                               });
                             });
                           });
+                        }
+                        
+                        // Function to control dispenser relays based on calculated times
+                        function controlDispenserRelays(firebaseDB, db, solutionATime, solutionBTime, phDownTime) {
+                          // Convert time strings to numbers and ensure they're valid
+                          const solutionASeconds = parseFloat(solutionATime) || 0;
+                          const solutionBSeconds = parseFloat(solutionBTime) || 0;
+                          const phDownSeconds = parseFloat(phDownTime) || 0;
+                          
+                          // Reference to the relays node
+                          const relaysRef = firebaseDB.ref(db, 'relays');
+                          
+                          // Get current relay states first
+                          firebaseDB.get(relaysRef).then((snapshot) => {
+                            if (snapshot.exists()) {
+                              const relayStates = snapshot.val();
+                              console.log('Current relay states before dispensing:', relayStates);
+                              
+                              // Process solution A (relay5) if time > 0
+                              if (solutionASeconds > 0) {
+                                processSolutionRelay(firebaseDB, db, 'relay5', solutionASeconds, 'Solution A');
+                              }
+                              
+                              // Process solution B (relay6) if time > 0
+                              if (solutionBSeconds > 0) {
+                                processSolutionRelay(firebaseDB, db, 'relay6', solutionBSeconds, 'Solution B');
+                              }
+                              
+                              // Process pH down (relay7) if time > 0
+                              if (phDownSeconds > 0) {
+                                processSolutionRelay(firebaseDB, db, 'relay7', phDownSeconds, 'pH Down');
+                              }
+                              
+                              // If no solutions are being dispensed, remove applying state immediately
+                              if (solutionASeconds <= 0 && solutionBSeconds <= 0 && phDownSeconds <= 0) {
+                                document.getElementById('apply-dispenser-settings').classList.remove('applying');
+                              }
+                              
+                              // Update the toast message to indicate dispensing is in progress
+                              if (solutionASeconds > 0 || solutionBSeconds > 0 || phDownSeconds > 0) {
+                                updateDispensingStatus('Dispensing in progress...');
+                              }
+                            } else {
+                              console.error('Relay states not found in Firebase');
+                              document.getElementById('apply-dispenser-settings').classList.remove('applying');
+                            }
+                          }).catch(error => {
+                            console.error('Error getting relay states:', error);
+                            document.getElementById('apply-dispenser-settings').classList.remove('applying');
+                          });
+                        }
+                        
+                        // Helper function to process a single solution relay
+                        function processSolutionRelay(firebaseDB, db, relayKey, durationSeconds, solutionName) {
+                          console.log(`Starting ${solutionName} dispensing using ${relayKey} for ${durationSeconds} seconds`);
+                          
+                          // First turn on the relay
+                          const relayUpdate = {};
+                          relayUpdate[relayKey] = true;
+                          
+                          firebaseDB.update(firebaseDB.ref(db, 'relays'), relayUpdate)
+                            .then(() => {
+                              console.log(`${relayKey} turned ON for ${solutionName}`);
+                              updateDispensingStatus(`Dispensing ${solutionName}... (${durationSeconds}s)`);
+                              
+                              // Set a timeout to turn off the relay after the specified duration
+                              setTimeout(() => {
+                                const relayOffUpdate = {};
+                                relayOffUpdate[relayKey] = false;
+                                
+                                firebaseDB.update(firebaseDB.ref(db, 'relays'), relayOffUpdate)
+                                  .then(() => {
+                                    console.log(`${relayKey} turned OFF after dispensing ${solutionName}`);
+                                    updateDispensingStatus(`${solutionName} dispensing complete`);
+                                    
+                                    // Check if this was the last relay to process
+                                    checkIfDispensingComplete();
+                                  })
+                                  .catch(error => {
+                                    console.error(`Error turning off ${relayKey} for ${solutionName}:`, error);
+                                    updateDispensingStatus(`Error turning off ${solutionName} pump`, true);
+                                    checkIfDispensingComplete();
+                                  });
+                              }, durationSeconds * 1000); // Convert seconds to milliseconds
+                            })
+                            .catch(error => {
+                              console.error(`Error turning on ${relayKey} for ${solutionName}:`, error);
+                              updateDispensingStatus(`Error activating ${solutionName} pump`, true);
+                              checkIfDispensingComplete();
+                            });
+                        }
+                        
+                        // Track active dispensing operations
+                        const activeDispensing = {
+                          solutionA: false,
+                          solutionB: false,
+                          phDown: false
+                        };
+                        
+                        // Function to update the dispensing status message
+                        function updateDispensingStatus(message, isError = false) {
+                          const dispensersToast = document.getElementById('dispensers-toast');
+                          
+                          if (isError) {
+                            dispensersToast.querySelector('.settings-toast-icon svg').innerHTML = 
+                              '<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+                            dispensersToast.style.borderLeftColor = '#FF6B6B';
+                            dispensersToast.querySelector('.settings-toast-icon svg').style.stroke = '#FF6B6B';
+                          } else {
+                            dispensersToast.querySelector('.settings-toast-icon svg').innerHTML = 
+                              '<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 16v-4"></path><path d="M12 8h.01"></path>';
+                            dispensersToast.style.borderLeftColor = 'var(--accent-color)';
+                            dispensersToast.querySelector('.settings-toast-icon svg').style.stroke = 'var(--accent-color)';
+                          }
+                          
+                          dispensersToast.querySelector('.settings-toast-content').textContent = message;
+                          dispensersToast.classList.add('show');
+                        }
+                        
+                        // Function to check if all dispensing operations are complete
+                        function checkIfDispensingComplete() {
+                          // Since we're using setTimeout for each relay, we don't need to track active operations
+                          // Just check if any timers are still running by checking the document's timeouts
+                          
+                          // Remove the applying state from the button
+                          const applyButton = document.getElementById('apply-dispenser-settings');
+                          if (applyButton) {
+                            applyButton.classList.remove('applying');
+                          }
+                          
+                          // Update toast message to indicate completion
+                          setTimeout(() => {
+                            updateDispensingStatus('All dispensing operations complete');
+                            
+                            // Hide notification after 3 seconds
+                            setTimeout(() => {
+                              // Reset toast styles for next time
+                              const dispensersToast = document.getElementById('dispensers-toast');
+                              if (dispensersToast) {
+                                dispensersToast.querySelector('.settings-toast-icon svg').innerHTML = 
+                                  '<polyline points="20 6 9 17 4 12"></polyline>';
+                                dispensersToast.querySelector('.settings-toast-content').textContent = 'Dispenser settings applied successfully';
+                                dispensersToast.classList.remove('show');
+                              }
+                            }, 3000);
+                          }, 1000);
                         }
                       });
                     </script>
@@ -2846,8 +2993,9 @@
             <div id="live-stream-section" class="product-details-section">
               <div class="live-stream-container" style="width: 100%; height: 0; padding-bottom: 56.25%; position: relative; overflow: hidden; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);">
                 <iframe 
+                  id="youtube-embed"
                   style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                  src="https://www.youtube.com/embed/ikhNOk1W6Mg?autoplay=1&mute=1&enablejsapi=1&controls=1&rel=0"
+                  src="about:blank"
                   title="Waraf Live Stream"
                   frameborder="0" 
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -2903,16 +3051,741 @@
                   </div>
                 </div>
               </div>
+              
+              <script>
+                // Initialize YouTube link from Firebase
+                document.addEventListener('DOMContentLoaded', function() {
+                  // Default YouTube link in case Firebase fails
+                  const defaultYoutubeLink = "https://www.youtube.com/embed/ikhNOk1W6Mg?autoplay=1&mute=1&enablejsapi=1&controls=1&rel=0";
+                  const youtubeEmbed = document.getElementById('youtube-embed');
+                  
+                  // Import Firebase modules
+                  import('https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js').then((firebaseApp) => {
+                    import('https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js').then((firebaseDB) => {
+                      // Get Firebase instances
+                      const db = firebaseDB.getDatabase();
+                      
+                      // Reference to the links node
+                      const linksRef = firebaseDB.ref(db, 'links');
+                      
+                      // Listen for changes to the links node
+                      firebaseDB.onValue(linksRef, (snapshot) => {
+                        if (snapshot.exists()) {
+                          const links = snapshot.val();
+                          console.log('Links from Firebase for YouTube (updated):', links);
+                          
+                          // CORRECTED: Using youtubeStream instead of youtubeLink
+                          if (links.youtubeStream) {
+                            // Clean the YouTube URL if needed
+                            let youtubeUrl = links.youtubeStream.trim();
+                            
+                            // Remove any @ symbol if present
+                            if (youtubeUrl.startsWith('@')) {
+                              youtubeUrl = youtubeUrl.substring(1);
+                            }
+                            
+                            console.log('Processing YouTube URL:', youtubeUrl);
+                            
+                            // Check if it's a full YouTube URL or just an ID
+                            if (youtubeUrl.includes('youtube.com/embed/')) {
+                              // It's already an embed URL
+                              console.log('Using YouTube embed URL from Firebase:', youtubeUrl);
+                              youtubeEmbed.src = youtubeUrl;
+                            } else if (youtubeUrl.includes('youtube.com/watch?v=')) {
+                              // It's a watch URL, convert to embed
+                              const videoId = new URL(youtubeUrl).searchParams.get('v');
+                              const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&enablejsapi=1&controls=1&rel=0`;
+                              console.log('Converted YouTube watch URL to embed URL:', embedUrl);
+                              youtubeEmbed.src = embedUrl;
+                            } else if (youtubeUrl.includes('youtu.be/')) {
+                              // It's a shortened URL, convert to embed
+                              const videoId = youtubeUrl.split('/').pop().split('?')[0];
+                              const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&enablejsapi=1&controls=1&rel=0`;
+                              console.log('Converted shortened YouTube URL to embed URL:', embedUrl);
+                              youtubeEmbed.src = embedUrl;
+                            } else {
+                              // Assume it's just a video ID
+                              const embedUrl = `https://www.youtube.com/embed/${youtubeUrl}?autoplay=1&mute=1&enablejsapi=1&controls=1&rel=0`;
+                              console.log('Using YouTube video ID from Firebase:', embedUrl);
+                              youtubeEmbed.src = embedUrl;
+                            }
+                          } else {
+                            console.log('YouTube stream link not found in Firebase, using default');
+                            youtubeEmbed.src = defaultYoutubeLink;
+                          }
+                        } else {
+                          console.log('Links node not found in Firebase, using default YouTube link');
+                          youtubeEmbed.src = defaultYoutubeLink;
+                        }
+                      }, (error) => {
+                        console.error('Error listening to links from Firebase:', error);
+                        youtubeEmbed.src = defaultYoutubeLink;
+                      });
+                    }).catch(error => {
+                      console.error('Error importing Firebase Database:', error);
+                      youtubeEmbed.src = defaultYoutubeLink;
+                    });
+                  }).catch(error => {
+                    console.error('Error importing Firebase App:', error);
+                    youtubeEmbed.src = defaultYoutubeLink;
+                  });
+                });
+              </script>
             </div>
 
             <div id="dispensers-section" class="product-details-section">
-              <div class="placeholder-content">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2"></path>
-                  <path d="M7 12h14l-3-3m0 6l3-3"></path>
-                </svg>
-                <p>Solar Power panel will be implemented in future updates. This will enable you to monitor power generation and battery levels for your hydroponic system.</p>
+              <div class="solar-power-dashboard">
+                <h2 class="solar-power-title">Solar Power Monitoring</h2>
+                <p class="solar-power-subtitle">Monitor your 170W solar panel's performance in real-time</p>
+                
+                <!-- Current Power Output -->
+                <div class="solar-power-current">
+                  <div class="solar-power-card">
+                    <div class="solar-power-card-header">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                      </svg>
+                      <h3>Current Output</h3>
+                    </div>
+                    <div class="solar-power-card-content">
+                      <div class="solar-power-gauge">
+                        <div class="solar-power-gauge-value" id="current-power-value">0</div>
+                        <div class="solar-power-gauge-unit">W</div>
+                      </div>
+                      <div class="solar-power-gauge-label">
+                        <span id="power-percentage">0</span>% of capacity
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="solar-power-card">
+                    <div class="solar-power-card-header">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <h3>Today's Energy</h3>
+                    </div>
+                    <div class="solar-power-card-content">
+                      <div class="solar-power-gauge">
+                        <div class="solar-power-gauge-value" id="today-energy-value">0</div>
+                        <div class="solar-power-gauge-unit">Wh</div>
+                      </div>
+                      <div class="solar-power-gauge-label">
+                        Generated today
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="solar-power-card">
+                    <div class="solar-power-card-header">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                      </svg>
+                      <h3>System Status</h3>
+                    </div>
+                    <div class="solar-power-card-content">
+                      <div class="solar-power-status">
+                        <div class="solar-power-status-indicator active"></div>
+                        <div class="solar-power-status-text" id="system-status">Generating Power</div>
+                      </div>
+                      <div class="solar-power-gauge-label" id="weather-condition">
+                        Sunny conditions
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Power Output Graph -->
+                <div class="solar-power-graph-container">
+                  <div class="solar-power-graph-header">
+                    <h3>Power Output Over Time</h3>
+                    <div class="solar-power-graph-controls">
+                      <button class="solar-power-graph-button active" data-timeframe="day">Day</button>
+                      <button class="solar-power-graph-button" data-timeframe="week">Week</button>
+                      <button class="solar-power-graph-button" data-timeframe="month">Month</button>
+                    </div>
+                  </div>
+                  <div class="solar-power-graph-wrapper">
+                    <canvas id="powerGraph"></canvas>
+                  </div>
+                </div>
+                
+                <!-- Energy Statistics -->
+                <div class="solar-power-stats">
+                  <div class="solar-power-stats-card">
+                    <div class="solar-power-stats-header">
+                      <h3>Energy Generation Statistics</h3>
+                    </div>
+                    <div class="solar-power-stats-grid">
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">Today</div>
+                        <div class="solar-power-stats-value" id="stats-today">0 Wh</div>
+                      </div>
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">Yesterday</div>
+                        <div class="solar-power-stats-value" id="stats-yesterday">0 Wh</div>
+                      </div>
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">This Week</div>
+                        <div class="solar-power-stats-value" id="stats-week">0 kWh</div>
+                      </div>
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">This Month</div>
+                        <div class="solar-power-stats-value" id="stats-month">0 kWh</div>
+                      </div>
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">Total</div>
+                        <div class="solar-power-stats-value" id="stats-total">0 kWh</div>
+                      </div>
+                      <div class="solar-power-stats-item">
+                        <div class="solar-power-stats-label">CO₂ Saved</div>
+                        <div class="solar-power-stats-value" id="stats-co2">0 kg</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              <style>
+                .solar-power-dashboard {
+                  padding: 20px;
+                  color: #fff;
+                }
+                
+                .solar-power-title {
+                  font-size: 1.8rem;
+                  margin-bottom: 10px;
+                  color: var(--accent-color);
+                }
+                
+                .solar-power-subtitle {
+                  font-size: 1rem;
+                  margin-bottom: 20px;
+                  opacity: 0.8;
+                }
+                
+                .solar-power-current {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                  gap: 20px;
+                  margin-bottom: 30px;
+                }
+                
+                .solar-power-card {
+                  background-color: rgba(25, 25, 25, 0.7);
+                  border-radius: 10px;
+                  padding: 20px;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                  border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+                
+                .solar-power-card-header {
+                  display: flex;
+                  align-items: center;
+                  margin-bottom: 15px;
+                }
+                
+                .solar-power-card-header svg {
+                  width: 24px;
+                  height: 24px;
+                  stroke: var(--accent-color);
+                  margin-right: 10px;
+                }
+                
+                .solar-power-card-header h3 {
+                  font-size: 1.1rem;
+                  font-weight: 500;
+                  margin: 0;
+                }
+                
+                .solar-power-gauge {
+                  display: flex;
+                  align-items: baseline;
+                  margin-bottom: 5px;
+                }
+                
+                .solar-power-gauge-value {
+                  font-size: 2.5rem;
+                  font-weight: 600;
+                }
+                
+                .solar-power-gauge-unit {
+                  font-size: 1.2rem;
+                  margin-left: 5px;
+                  opacity: 0.8;
+                }
+                
+                .solar-power-gauge-label {
+                  font-size: 0.9rem;
+                  opacity: 0.7;
+                }
+                
+                .solar-power-status {
+                  display: flex;
+                  align-items: center;
+                  margin-bottom: 5px;
+                }
+                
+                .solar-power-status-indicator {
+                  width: 12px;
+                  height: 12px;
+                  border-radius: 50%;
+                  background-color: #777;
+                  margin-right: 10px;
+                }
+                
+                .solar-power-status-indicator.active {
+                  background-color: #4caf50;
+                  box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+                }
+                
+                .solar-power-status-text {
+                  font-size: 1.2rem;
+                  font-weight: 500;
+                }
+                
+                .solar-power-graph-container {
+                  background-color: rgba(25, 25, 25, 0.7);
+                  border-radius: 10px;
+                  padding: 20px;
+                  margin-bottom: 30px;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                  border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+                
+                .solar-power-graph-header {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 20px;
+                }
+                
+                .solar-power-graph-header h3 {
+                  font-size: 1.1rem;
+                  font-weight: 500;
+                  margin: 0;
+                }
+                
+                .solar-power-graph-controls {
+                  display: flex;
+                  gap: 10px;
+                }
+                
+                .solar-power-graph-button {
+                  background: rgba(255, 255, 255, 0.1);
+                  border: none;
+                  color: #fff;
+                  padding: 5px 12px;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                }
+                
+                .solar-power-graph-button:hover {
+                  background: rgba(var(--accent-color-rgb), 0.3);
+                }
+                
+                .solar-power-graph-button.active {
+                  background: var(--accent-color);
+                }
+                
+                .solar-power-graph-wrapper {
+                  height: 300px;
+                  position: relative;
+                }
+                
+                .solar-power-stats {
+                  margin-bottom: 20px;
+                }
+                
+                .solar-power-stats-card {
+                  background-color: rgba(25, 25, 25, 0.7);
+                  border-radius: 10px;
+                  padding: 20px;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                  border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+                
+                .solar-power-stats-header {
+                  margin-bottom: 20px;
+                }
+                
+                .solar-power-stats-header h3 {
+                  font-size: 1.1rem;
+                  font-weight: 500;
+                  margin: 0;
+                }
+                
+                .solar-power-stats-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                  gap: 20px;
+                }
+                
+                .solar-power-stats-item {
+                  text-align: center;
+                }
+                
+                .solar-power-stats-label {
+                  font-size: 0.9rem;
+                  opacity: 0.7;
+                  margin-bottom: 5px;
+                }
+                
+                .solar-power-stats-value {
+                  font-size: 1.2rem;
+                  font-weight: 500;
+                }
+                
+                @media (max-width: 768px) {
+                  .solar-power-current {
+                    grid-template-columns: 1fr;
+                  }
+                  
+                  .solar-power-graph-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                  }
+                  
+                  .solar-power-graph-controls {
+                    margin-top: 10px;
+                  }
+                  
+                  .solar-power-stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                  }
+                }
+              </style>
+              
+              <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+              <script>
+                // Solar power monitoring simulation for a 170W solar panel
+                document.addEventListener('DOMContentLoaded', function() {
+                  // Constants
+                  const MAX_POWER = 170; // Maximum power in watts
+                  
+                  // Get DOM elements
+                  const currentPowerValue = document.getElementById('current-power-value');
+                  const powerPercentage = document.getElementById('power-percentage');
+                  const todayEnergyValue = document.getElementById('today-energy-value');
+                  const systemStatus = document.getElementById('system-status');
+                  const weatherCondition = document.getElementById('weather-condition');
+                  
+                  // Stats elements
+                  const statsToday = document.getElementById('stats-today');
+                  const statsYesterday = document.getElementById('stats-yesterday');
+                  const statsWeek = document.getElementById('stats-week');
+                  const statsMonth = document.getElementById('stats-month');
+                  const statsTotal = document.getElementById('stats-total');
+                  const statsCO2 = document.getElementById('stats-co2');
+                  
+                  // Get the time of day (0-23)
+                  const getCurrentHour = () => new Date().getHours();
+                  
+                  // Simulate solar power based on time of day
+                  function generatePowerData() {
+                    const hour = getCurrentHour();
+                    
+                    // Solar power is zero during night hours (7pm - 5am)
+                    if (hour < 6 || hour > 18) {
+                      return {
+                        currentPower: 0,
+                        percentage: 0,
+                        status: 'Inactive (Night)',
+                        weather: 'Night time'
+                      };
+                    }
+                    
+                    // Factor in time of day - peak around noon
+                    let timeFactor;
+                    if (hour <= 12) {
+                      timeFactor = (hour - 6) / 6; // 0 at 6am, 1 at noon
+                    } else {
+                      timeFactor = 1 - ((hour - 12) / 6); // 1 at noon, 0 at 6pm
+                    }
+                    
+                    // Add some randomness for cloud cover etc.
+                    const randomFactor = 0.7 + (Math.random() * 0.3); // 0.7-1.0
+                    
+                    // Calculate power output
+                    let power = MAX_POWER * timeFactor * randomFactor;
+                    
+                    // Round to whole number
+                    power = Math.round(power);
+                    
+                    // Calculate percentage of max capacity
+                    const percentage = Math.round((power / MAX_POWER) * 100);
+                    
+                    // Determine weather condition based on random factor
+                    let weather;
+                    let status;
+                    
+                    if (randomFactor > 0.9) {
+                      weather = 'Sunny conditions';
+                      status = 'Optimal Generation';
+                    } else if (randomFactor > 0.8) {
+                      weather = 'Partly cloudy';
+                      status = 'Good Generation';
+                    } else {
+                      weather = 'Cloudy conditions';
+                      status = 'Reduced Generation';
+                    }
+                    
+                    // If power is very low during the day, might be heavily overcast
+                    if (power < MAX_POWER * 0.2 && hour >= 8 && hour <= 16) {
+                      weather = 'Heavy cloud cover';
+                      status = 'Minimal Generation';
+                    }
+                    
+                    return {
+                      currentPower: power,
+                      percentage,
+                      status,
+                      weather
+                    };
+                  }
+                  
+                  // Energy calculation (Wh) based on average power over time
+                  function calculateEnergy() {
+                    const hour = getCurrentHour();
+                    let totalEnergyToday = 0;
+                    
+                    // Calculate energy generated so far today
+                    for (let h = 6; h <= Math.min(hour, 18); h++) {
+                      // Simulate the curve of power generation throughout the day
+                      let timeFactor;
+                      if (h <= 12) {
+                        timeFactor = (h - 6) / 6; // 0 at 6am, 1 at noon
+                      } else {
+                        timeFactor = 1 - ((h - 12) / 6); // 1 at noon, 0 at 6pm
+                      }
+                      
+                      // Average power for this hour (watts)
+                      const avgPower = MAX_POWER * timeFactor * (0.7 + (Math.random() * 0.3));
+                      
+                      // Energy in watt-hours (power × time)
+                      totalEnergyToday += avgPower;
+                    }
+                    
+                    // Round to whole number
+                    totalEnergyToday = Math.round(totalEnergyToday);
+                    
+                    return {
+                      today: totalEnergyToday,
+                      yesterday: Math.round(700 + Math.random() * 200),
+                      week: (4.5 + Math.random()).toFixed(1),
+                      month: (18 + Math.random() * 5).toFixed(1),
+                      total: (120 + Math.random() * 30).toFixed(1),
+                      co2: (60 + Math.random() * 15).toFixed(1)
+                    };
+                  }
+                  
+                  // Generate hourly data for the graph
+                  function generateHourlyData() {
+                    const data = [];
+                    const labels = [];
+                    const hour = getCurrentHour();
+                    
+                    // Generate data for each hour of the day
+                    for (let h = 0; h < 24; h++) {
+                      labels.push(`${h}:00`);
+                      
+                      // If this hour hasn't occurred yet today, show no data
+                      if (h > hour) {
+                        data.push(null);
+                        continue;
+                      }
+                      
+                      // No power at night
+                      if (h < 6 || h > 18) {
+                        data.push(0);
+                        continue;
+                      }
+                      
+                      // Calculate power for this hour
+                      let timeFactor;
+                      if (h <= 12) {
+                        timeFactor = (h - 6) / 6; // 0 at 6am, 1 at noon
+                      } else {
+                        timeFactor = 1 - ((h - 12) / 6); // 1 at noon, 0 at 6pm
+                      }
+                      
+                      const randomFactor = 0.7 + (Math.random() * 0.3);
+                      const power = Math.round(MAX_POWER * timeFactor * randomFactor);
+                      
+                      data.push(power);
+                    }
+                    
+                    return { data, labels };
+                  }
+                  
+                  // Initialize graph
+                  function initGraph() {
+                    const ctx = document.getElementById('powerGraph').getContext('2d');
+                    const { data, labels } = generateHourlyData();
+                    
+                    const chart = new Chart(ctx, {
+                      type: 'line',
+                      data: {
+                        labels: labels,
+                        datasets: [{
+                          label: 'Power (W)',
+                          data: data,
+                          borderColor: 'rgb(39, 174, 96)',
+                          backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                          borderWidth: 2,
+                          fill: true,
+                          tension: 0.4,
+                          pointRadius: 3,
+                          pointBackgroundColor: 'rgb(39, 174, 96)'
+                        }]
+                      },
+                      options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false
+                          },
+                          tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            titleFont: {
+                              size: 14
+                            },
+                            bodyFont: {
+                              size: 14
+                            }
+                          }
+                        },
+                        scales: {
+                          x: {
+                            grid: {
+                              color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                              color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                          },
+                          y: {
+                            beginAtZero: true,
+                            max: MAX_POWER * 1.1,
+                            grid: {
+                              color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                              color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                          }
+                        }
+                      }
+                    });
+                    
+                    return chart;
+                  }
+                  
+                  // Set up graph timeframe buttons
+                  function setupGraphControls(chart) {
+                    const buttons = document.querySelectorAll('.solar-power-graph-button');
+                    
+                    buttons.forEach(button => {
+                      button.addEventListener('click', () => {
+                        // Remove active class from all buttons
+                        buttons.forEach(btn => btn.classList.remove('active'));
+                        
+                        // Add active class to clicked button
+                        button.classList.add('active');
+                        
+                        // Get timeframe
+                        const timeframe = button.getAttribute('data-timeframe');
+                        
+                        // Update graph based on timeframe
+                        if (timeframe === 'day') {
+                          const { data, labels } = generateHourlyData();
+                          chart.data.labels = labels;
+                          chart.data.datasets[0].data = data;
+                          chart.options.scales.x.title = {
+                            display: true,
+                            text: 'Hour of Day'
+                          };
+                        } else if (timeframe === 'week') {
+                          // Generate weekly data
+                          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                          const weekData = days.map(() => Math.round(500 + Math.random() * 300));
+                          
+                          chart.data.labels = days;
+                          chart.data.datasets[0].data = weekData;
+                          chart.options.scales.x.title = {
+                            display: true,
+                            text: 'Day of Week'
+                          };
+                        } else if (timeframe === 'month') {
+                          // Generate monthly data
+                          const days = Array.from({length: 30}, (_, i) => (i + 1).toString());
+                          const monthData = days.map(() => Math.round(500 + Math.random() * 300));
+                          
+                          chart.data.labels = days;
+                          chart.data.datasets[0].data = monthData;
+                          chart.options.scales.x.title = {
+                            display: true,
+                            text: 'Day of Month'
+                          };
+                        }
+                        
+                        chart.update();
+                      });
+                    });
+                  }
+                  
+                  // Update display
+                  function updateDisplay() {
+                    // Generate power data
+                    const powerData = generatePowerData();
+                    
+                    // Update current power display
+                    currentPowerValue.textContent = powerData.currentPower;
+                    powerPercentage.textContent = powerData.percentage;
+                    
+                    // Update system status
+                    systemStatus.textContent = powerData.status;
+                    weatherCondition.textContent = powerData.weather;
+                    
+                    // Update system status indicator
+                    const statusIndicator = document.querySelector('.solar-power-status-indicator');
+                    if (powerData.currentPower > 0) {
+                      statusIndicator.classList.add('active');
+                    } else {
+                      statusIndicator.classList.remove('active');
+                    }
+                    
+                    // Calculate energy data
+                    const energyData = calculateEnergy();
+                    
+                    // Update energy displays
+                    todayEnergyValue.textContent = energyData.today;
+                    
+                    // Update stats
+                    statsToday.textContent = `${energyData.today} Wh`;
+                    statsYesterday.textContent = `${energyData.yesterday} Wh`;
+                    statsWeek.textContent = `${energyData.week} kWh`;
+                    statsMonth.textContent = `${energyData.month} kWh`;
+                    statsTotal.textContent = `${energyData.total} kWh`;
+                    statsCO2.textContent = `${energyData.co2} kg`;
+                  }
+                  
+                  // Initialize
+                  const chart = initGraph();
+                  setupGraphControls(chart);
+                  updateDisplay();
+                  
+                  // Update data periodically
+                  setInterval(updateDisplay, 60000); // Update every minute
+                });
+              </script>
             </div>
           </div>
         </div>
@@ -3555,12 +4428,12 @@
           name: 'Electrical Conductivity (EC)',
           description: 'Indicates the concentration of dissolved nutrients',
           icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>',
-          unit: 'mS/cm',
+          unit: 'μS/cm',
           minValue: 0,
-          maxValue: 5,
-          optimalMin: 1.2,
-          optimalMax: 2.5,
-          defaultValue: 1.8
+          maxValue: 5000,
+          optimalMin: 1200,
+          optimalMax: 2500,
+          defaultValue: 1800
         },
         {
           id: 'tds',
@@ -3909,11 +4782,38 @@
         const firebaseKey = sensorMap[sensorId];
         
         if (!firebaseKey || !sensorValues || !sensorValues[firebaseKey]) {
+          // Special case for EC - it's calculated from TDS and doesn't have a direct value in Firebase
+          if (sensorId === 'ec') {
+            // Get TDS value and calculate EC if TDS exists
+            if (sensorValues && sensorValues.tds && sensorValues.tds.value !== null && sensorValues.tds.value !== undefined) {
+              const tdsValue = parseFloat(sensorValues.tds.value);
+              if (!isNaN(tdsValue)) {
+                // Get ECfactor, default to 2 if not available
+                const ecFactor = (sensorValues.factors && sensorValues.factors.ECfactor) ? 
+                  parseFloat(sensorValues.factors.ECfactor) : 2;
+                
+                // Calculate EC value as TDS × ECfactor
+                const ecValue = tdsValue * ecFactor;
+                console.log(`Calculated EC value from TDS: ${tdsValue} × ${ecFactor} = ${ecValue} μS/cm`);
+                return ecValue;
+              }
+            }
+            return null;
+          }
           return null;
         }
         
         // Get the value from Firebase
-        return sensorValues[firebaseKey].value;
+        let value = sensorValues[firebaseKey].value;
+        
+        // Apply TDSfactor for TDS sensor if factors exist in Firebase data
+        if (sensorId === 'tds' && sensorValues.factors && sensorValues.factors.TDSfactor) {
+          // Apply the multiplication factor to the TDS value
+          value = value * sensorValues.factors.TDSfactor;
+          console.log(`Applied TDSfactor ${sensorValues.factors.TDSfactor} to TDS value: ${sensorValues.tds.value} → ${value}`);
+        }
+        
+        return value;
       }
       
       // Get min value from Firebase data
@@ -3921,7 +4821,7 @@
         // Map sensor IDs to the corresponding Firebase data property
         const sensorMap = {
           'ph': 'pH',
-          'ec': 'EC',
+          'ec': 'EC', 
           'tds': 'tds',
           'water_temp': 'waterTemp',
           'air_temp': 'airTemp',
@@ -3932,6 +4832,11 @@
         
         // Get the appropriate key for this sensor
         const firebaseKey = sensorMap[sensorId];
+        
+        // Special case for EC - it doesn't have direct values in Firebase
+        if (sensorId === 'ec') {
+          return null; // Use default min value from sensorTypes
+        }
         
         if (!firebaseKey || !sensorValues || !sensorValues[firebaseKey]) {
           return null;
@@ -3958,6 +4863,11 @@
         // Get the appropriate key for this sensor
         const firebaseKey = sensorMap[sensorId];
         
+        // Special case for EC - it doesn't have direct values in Firebase
+        if (sensorId === 'ec') {
+          return null; // Use default max value from sensorTypes
+        }
+        
         if (!firebaseKey || !sensorValues || !sensorValues[firebaseKey]) {
           return null;
         }
@@ -3976,6 +4886,10 @@
         // For numeric values, format with 1 decimal place
         const numericValue = parseFloat(value);
         if (!isNaN(numericValue)) {
+          // For EC values, round to whole number as they're likely to be larger numbers (μS/cm)
+          if (sensorId === 'ec') {
+            return Math.round(numericValue).toString();
+          }
           return numericValue.toFixed(1);
         }
         
@@ -4053,12 +4967,18 @@
                     // Find the sensor type to get the icon
                     const sensorType = sensorTypes.find(type => type.id === savedSensor.iconId);
                     
+                    // Skip if sensorType is not found (e.g., if we've removed the EC sensor type)
+                    if (!sensorType) {
+                      console.log(`Skipping removed sensor type: ${savedSensor.iconId}`);
+                      return null;
+                    }
+                    
                     // Merge the saved sensor with the icon from sensorTypes
                     return {
                       ...savedSensor,
                       icon: sensorType.icon
                     };
-                  });
+                  }).filter(sensor => sensor !== null); // Filter out null entries (removed sensors)
                   
                   console.log("Loaded sensors from Firebase:", addedSensors);
                   
@@ -4128,12 +5048,18 @@
               // Find the sensor type to get the icon
               const sensorType = sensorTypes.find(type => type.id === savedSensor.iconId);
               
+              // Skip if sensorType is not found (e.g., if we've removed the EC sensor type)
+              if (!sensorType) {
+                console.log(`Skipping removed sensor type: ${savedSensor.iconId}`);
+                return null;
+              }
+              
               // Merge the saved sensor with the icon from sensorTypes
               return {
                 ...savedSensor,
                 icon: sensorType.icon
               };
-            });
+            }).filter(sensor => sensor !== null); // Filter out null entries (removed sensors)
             
             console.log("Loaded sensors from localStorage:", addedSensors);
             
@@ -4484,47 +5410,44 @@
     });
   </script>
 
-  <!-- AI Assistant Button and Chat Interface -->
+  <!-- Professional AI Assistant -->
   <div id="ai-assistant-container">
     <button id="ai-assistant-button" aria-label="AI Assistant">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
-        <path d="M12 16v-4"></path>
-        <path d="M12 8h.01"></path>
+        <circle cx="12" cy="12" r="4"></circle>
+        <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
+        <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
+        <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
+        <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
       </svg>
     </button>
     
     <div id="ai-chat-interface">
       <div class="ai-chat-header">
-        <h3>AI Assistant</h3>
-        <button id="ai-chat-close" aria-label="Close chat">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      
-      <div id="ai-chat-messages">
-        <div class="ai-message">
-          <div class="ai-avatar">
+        <h3>Assistant</h3>
+        <div class="ai-chat-header-buttons">
+          <button id="ai-chat-new" aria-label="New Chat">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="4"></circle>
-              <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
-              <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
-              <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
-              <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
-          </div>
-          <div class="ai-message-content">
-            Hello! I'm your Waraf AI assistant. How can I help you with your hydroponics system today?
-          </div>
+          </button>
+          <button id="ai-chat-close" aria-label="Close chat">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       </div>
       
+      <div id="ai-chat-messages">
+      </div>
+      
       <div class="ai-chat-input-container">
-        <input type="text" id="ai-chat-input" placeholder="Type your question here..." aria-label="Message input">
+        <input type="text" id="ai-chat-input" placeholder="Type your message..." aria-label="Message input">
         <button id="ai-chat-send" aria-label="Send message">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -4536,7 +5459,7 @@
   </div>
   
   <style>
-    /* AI Assistant Styles */
+    /* Professional AI Assistant Styles */
     #ai-assistant-container {
       position: fixed;
       right: 30px;
@@ -4561,7 +5484,7 @@
     }
     
     #ai-assistant-button:hover {
-      transform: scale(1.1);
+      transform: scale(1.05);
       box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
     }
     
@@ -4572,21 +5495,23 @@
     }
     
     #ai-chat-interface {
-      position: absolute;
-      bottom: 75px;
-      right: 0;
-      width: 350px;
-      height: 500px;
-      background-color: rgba(25, 25, 25, 0.95);
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      width: 700px;
+      height: 600px;
+      max-width: 85vw;
+      max-height: 80vh;
+      background-color: #000000;
       border-radius: 15px;
-      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       transition: all 0.3s ease;
       opacity: 0;
       visibility: hidden;
-      transform: translateY(20px) scale(0.95);
       z-index: 10000;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -4594,12 +5519,12 @@
     #ai-chat-interface.active {
       opacity: 1;
       visibility: visible;
-      transform: translateY(0) scale(1);
+      transform: translate(-50%, -50%) scale(1);
     }
     
     .ai-chat-header {
-      padding: 15px 20px;
-      background-color: rgba(56, 181, 147, 0.2);
+      padding: 20px;
+      background-color: #000000;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -4607,118 +5532,105 @@
     }
     
     .ai-chat-header h3 {
-      color: var(--accent-color);
+      color: white;
       margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      font-weight: 500;
     }
     
-    #ai-chat-close {
+    .ai-chat-header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    #ai-chat-close, #ai-chat-new {
       background: none;
       border: none;
       cursor: pointer;
       padding: 5px;
-    }
-    
-    #ai-chat-close svg {
-      width: 16px;
-      height: 16px;
-      stroke: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
       transition: all 0.2s ease;
     }
     
-    #ai-chat-close:hover svg {
-      stroke: white;
+    #ai-chat-close:hover, #ai-chat-new:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    #ai-chat-close svg, #ai-chat-new svg {
+      width: 20px;
+      height: 20px;
+      stroke: rgba(255, 255, 255, 0.7);
     }
     
     #ai-chat-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 15px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 16px;
     }
     
     #ai-chat-messages::-webkit-scrollbar {
-      width: 6px;
+      width: 8px;
     }
     
     #ai-chat-messages::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.15);
-      border-radius: 3px;
+      border-radius: 4px;
     }
     
     #ai-chat-messages::-webkit-scrollbar-thumb {
       background: rgba(56, 181, 147, 0.5);
-      border-radius: 3px;
+      border-radius: 4px;
     }
     
     .ai-message {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      animation: fadeIn 0.3s ease;
     }
     
     .ai-message.user-message {
-      flex-direction: row-reverse;
+      align-self: flex-end;
+      background-color: rgba(56, 181, 147, 0.2);
+      color: white;
+      border-top-right-radius: 3px;
     }
     
-    .ai-avatar {
-      width: 32px;
-      height: 32px;
-      background-color: rgba(56, 181, 147, 0.15);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    
-    .ai-avatar svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--accent-color);
-    }
-    
-    .user-message .ai-avatar {
-      background-color: rgba(56, 96, 181, 0.15);
-    }
-    
-    .user-message .ai-avatar svg {
-      stroke: #4d7cfe;
-    }
-    
-    .ai-message-content {
-      background-color: rgba(35, 35, 35, 0.9);
-      padding: 12px 15px;
-      border-radius: 10px;
-      border-top-left-radius: 2px;
+    .ai-message.assistant-message {
+      align-self: flex-start;
+      background-color: #121212;
       color: rgba(255, 255, 255, 0.9);
-      font-size: 0.95rem;
-      line-height: 1.5;
-      max-width: 85%;
+      border-top-left-radius: 3px;
     }
     
-    .user-message .ai-message-content {
-      background-color: rgba(56, 96, 181, 0.2);
-      border-radius: 10px;
-      border-top-right-radius: 2px;
+    .ai-message.error-message {
+      background-color: rgba(220, 53, 69, 0.2);
+      color: #ffcccc;
+      border-left: 3px solid #dc3545;
+      align-self: stretch;
+      max-width: 100%;
+      border-radius: 6px;
     }
     
     .ai-chat-input-container {
       display: flex;
-      padding: 15px;
+      padding: 15px 20px;
+      gap: 12px;
+      background-color: #000000;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
-      background-color: rgba(28, 28, 28, 0.9);
     }
     
     #ai-chat-input {
       flex: 1;
-      background-color: rgba(18, 18, 18, 0.95);
+      background-color: #0a0a0a;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 12px 15px;
-      border-radius: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
       color: white;
       font-size: 0.95rem;
       outline: none;
@@ -4732,11 +5644,10 @@
     
     #ai-chat-send {
       background-color: var(--accent-color);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
       border: none;
-      margin-left: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -4746,7 +5657,6 @@
     
     #ai-chat-send:hover {
       background-color: rgba(56, 181, 147, 0.8);
-      transform: scale(1.05);
     }
     
     #ai-chat-send svg {
@@ -4755,16 +5665,11 @@
       stroke: white;
     }
     
-    @keyframes typing {
-      0%, 100% { opacity: 0.2; }
-      50% { opacity: 1; }
-    }
-    
     .typing-indicator {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 5px 10px;
+      gap: 4px;
+      padding: 8px 12px;
     }
     
     .typing-indicator span {
@@ -4773,7 +5678,7 @@
       background-color: var(--accent-color);
       border-radius: 50%;
       display: inline-block;
-      animation: typing 1s infinite;
+      animation: pulse 1.4s infinite ease-in-out;
     }
     
     .typing-indicator span:nth-child(2) {
@@ -4783,101 +5688,282 @@
     .typing-indicator span:nth-child(3) {
       animation-delay: 0.4s;
     }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.7); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
   
   <script>
-    // AI Assistant functionality
+    // Professional AI Assistant Implementation
     document.addEventListener('DOMContentLoaded', function() {
+      // Elements
       const aiButton = document.getElementById('ai-assistant-button');
       const aiChatInterface = document.getElementById('ai-chat-interface');
       const aiChatClose = document.getElementById('ai-chat-close');
+      const aiChatNew = document.getElementById('ai-chat-new');
       const aiChatInput = document.getElementById('ai-chat-input');
       const aiChatSend = document.getElementById('ai-chat-send');
       const aiChatMessages = document.getElementById('ai-chat-messages');
       
-      // Toggle chat interface visibility
-      aiButton.addEventListener('click', function() {
-        aiChatInterface.classList.toggle('active');
-        if (aiChatInterface.classList.contains('active')) {
-          aiChatInput.focus();
-        }
-      });
+      // Variables
+      let aiApiEndpoint = null;
+      let openRouterApiKey = null;
+      let aiModelName = "deepseek/deepseek-chat:free"; // Default model if not specified
+      let useOpenRouter = false;
       
-      // Close chat interface
-      aiChatClose.addEventListener('click', function() {
-        aiChatInterface.classList.remove('active');
-      });
+      // Initialize by fetching API endpoint from Firebase
+      function initializeAIAssistant() {
+        // Import Firebase modules
+        import('https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js').then((firebaseApp) => {
+          import('https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js').then((firebaseDB) => {
+            // Get Firebase instances
+            const db = firebaseDB.getDatabase();
+            
+            // Reference to the links node
+            const linksRef = firebaseDB.ref(db, 'links');
+            
+            // Use onValue to listen for changes to the links node
+            firebaseDB.onValue(linksRef, (snapshot) => {
+              if (snapshot.exists()) {
+                const linksData = snapshot.val();
+                console.log('Raw data from Firebase links node:', linksData);
+                
+                // The links might be a string that needs parsing
+                let links;
+                if (typeof linksData === 'string' && linksData.startsWith('{')) {
+                  try {
+                    // Try to parse the string as JSON
+                    links = JSON.parse(linksData);
+                    console.log('Parsed links data:', links);
+                  } catch (e) {
+                    console.error('Error parsing links data:', e);
+                    links = linksData; // Use as is if parsing fails
+                  }
+                } else {
+                  links = linksData; // Use as is if it's not a JSON string
+                }
+                
+                console.log('Links from Firebase for AI API (processed):', links);
+                
+                // Store both API options
+                if (links.apiKey) {
+                  openRouterApiKey = links.apiKey.trim();
+                  console.log('OpenRouter API Key found');
+                  useOpenRouter = true;
+                  
+                  // Store model name if provided
+                  if (links.modelName) {
+                    aiModelName = links.modelName.trim();
+                    console.log('Using AI model:', aiModelName);
+                  }
+                  
+                  // Test if OpenRouter key works
+                  testOpenRouterConnection();
+                } else {
+                  console.log('No OpenRouter API Key found');
+                  useOpenRouter = false;
+                }
+                
+                if (links.aiAPI) {
+                  // Clean the endpoint URL - remove any leading @ symbol
+                  let endpoint = links.aiAPI.trim();
+                  if (endpoint.startsWith('@')) {
+                    endpoint = endpoint.substring(1);
+                  }
+                  
+                  // Make sure the endpoint doesn't already end with /v1/chat/completions
+                  if (!endpoint.endsWith('/v1/chat/completions')) {
+                    // Add trailing slash if needed
+                    if (!endpoint.endsWith('/')) {
+                      endpoint += '/';
+                    }
+                    // Append the path
+                    endpoint += 'v1/chat/completions';
+                  }
+                  
+                  aiApiEndpoint = endpoint;
+                  console.log('Cleaned AI API endpoint:', aiApiEndpoint);
+                  
+                  // If we have no OpenRouter key, start chat with the standard API
+                  if (!openRouterApiKey) {
+                    startNewChat();
+                  }
+                } else {
+                  console.error('AI API endpoint not found in Firebase');
+                  showApiError('API configuration not found in the system.');
+                }
+              } else {
+                console.error('Links node not found in Firebase');
+                showApiError('API configuration not found in the system.');
+              }
+            }, (error) => {
+              console.error('Error listening to links from Firebase:', error);
+              showApiError('Could not load API configuration from the system.');
+            });
+          }).catch(error => {
+            console.error('Error importing Firebase Database:', error);
+            showApiError('Could not initialize the database connection.');
+          });
+        }).catch(error => {
+          console.error('Error importing Firebase App:', error);
+          showApiError('Could not initialize the connection to the system.');
+        });
+      }
       
-      // Function to add a message to the chat
-      function addMessage(content, isUser = false) {
+      // Test if OpenRouter API key works
+      function testOpenRouterConnection() {
+        console.log('Testing OpenRouter connection with model:', aiModelName);
+        
+        fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openRouterApiKey}`,
+            'HTTP-Referer': window.location.origin
+          },
+          body: JSON.stringify({
+            model: aiModelName,
+            messages: [
+              {
+                role: "system",
+                content: "Respond with only the word 'Connected' for connection test."
+              },
+              {
+                role: "user",
+                content: "Connection test"
+              }
+            ],
+            max_tokens: 10
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`OpenRouter API test failed with status ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('OpenRouter test response:', data);
+          if (data.choices && data.choices[0] && data.choices[0].message) {
+            console.log('OpenRouter connection successful!');
+            useOpenRouter = true;
+            startNewChat();
+          } else {
+            throw new Error('Unexpected OpenRouter response format');
+          }
+        })
+        .catch(error => {
+          console.error('OpenRouter connection test failed:', error);
+          console.log('Falling back to standard API endpoint');
+          useOpenRouter = false;
+          startNewChat();
+        });
+      }
+      
+      // Show API error message
+      function showApiError(message) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'ai-message error-message';
+        errorMessage.textContent = `Error: ${message} Please try again later or contact support if the problem persists.`;
+        aiChatMessages.appendChild(errorMessage);
+      }
+      
+      // Start a new chat
+      function startNewChat() {
+        // Clear messages
+        aiChatMessages.innerHTML = '';
+        
+        // Add initial greeting
+        const greeting = document.createElement('div');
+        greeting.className = 'ai-message assistant-message';
+        
+        // Simple greeting without model information
+        greeting.textContent = 'Hi, how can I help you?';
+        
+        aiChatMessages.appendChild(greeting);
+        
+        // Clear input
+        aiChatInput.value = '';
+      }
+      
+      // Function to add a user message
+      function addUserMessage(content) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = isUser ? 'ai-message user-message' : 'ai-message';
-        
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'ai-avatar';
-        
-        let avatarSvg;
-        if (isUser) {
-          avatarSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>`;
-        } else {
-          avatarSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="12" r="4"></circle>
-            <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
-            <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
-            <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
-            <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
-          </svg>`;
-        }
-        
-        avatarDiv.innerHTML = avatarSvg;
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'ai-message-content';
-        contentDiv.textContent = content;
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
-        
+        messageDiv.className = 'ai-message user-message';
+        messageDiv.textContent = content;
         aiChatMessages.appendChild(messageDiv);
         
-        // Scroll to bottom of chat
+        // Scroll to bottom
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+      }
+      
+      // Function to add an assistant message
+      function addAssistantMessage(content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'ai-message assistant-message';
+        messageDiv.textContent = ''; // Start empty
+        aiChatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom initially
+        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        
+        // Split the content into characters for a smoother effect
+        const characters = content.split('');
+        let charIndex = 0;
+        
+        // Function to add the next character
+        function addNextCharacter() {
+          if (charIndex < characters.length) {
+            // Add the next character
+            messageDiv.textContent += characters[charIndex];
+            charIndex++;
+            
+            // Scroll to bottom as text is added
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+            
+            // Calculate variable delay for natural effect
+            let delay;
+            const currentChar = characters[charIndex - 1];
+            const nextChar = characters[charIndex];
+            
+            // Slow down at the end of sentences and paragraphs
+            if (['.', '!', '?'].includes(currentChar)) {
+              delay = Math.floor(Math.random() * 100) + 200; // 200-300ms for end of sentences
+            } 
+            // Small pause after commas and semicolons
+            else if ([',', ';', ':'].includes(currentChar)) {
+              delay = Math.floor(Math.random() * 50) + 100; // 100-150ms for commas
+            } 
+            // Random regular typing speed
+            else {
+              delay = Math.floor(Math.random() * 20) + 15; // 15-35ms for normal characters
+            }
+            
+            // Schedule the next character
+            setTimeout(addNextCharacter, delay);
+          }
+        }
+        
+        // Start adding characters
+        addNextCharacter();
       }
       
       // Function to show typing indicator
       function showTypingIndicator() {
         const typingDiv = document.createElement('div');
-        typingDiv.className = 'ai-message typing-indicator';
+        typingDiv.className = 'ai-message assistant-message typing-indicator';
         typingDiv.id = 'typing-indicator';
-        
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'ai-avatar';
-        
-        const avatarSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <circle cx="12" cy="12" r="4"></circle>
-          <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"></line>
-          <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"></line>
-          <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"></line>
-          <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"></line>
-        </svg>`;
-        
-        avatarDiv.innerHTML = avatarSvg;
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'ai-message-content typing-indicator';
-        contentDiv.innerHTML = '<span></span><span></span><span></span>';
-        
-        typingDiv.appendChild(avatarDiv);
-        typingDiv.appendChild(contentDiv);
-        
+        typingDiv.innerHTML = '<span></span><span></span><span></span>';
         aiChatMessages.appendChild(typingDiv);
         
-        // Scroll to bottom of chat
+        // Scroll to bottom
         aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
       }
       
@@ -4889,80 +5975,303 @@
         }
       }
       
-      // Function to get AI response
-      function getAIResponse(userMessage) {
+      // Function to send message to API
+      function sendMessage(message) {
+        // Check if API endpoint is available
+        if (!useOpenRouter && !aiApiEndpoint) {
+          showApiError('No API endpoint configured.');
+          return;
+        }
+        
         // Show typing indicator
         showTypingIndicator();
         
-        // Make a POST request to the provided API endpoint
-        fetch('https://d40c-163-116-191-39.ngrok-free.app/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo", // Default model, can be configured based on needs
-            messages: [
-              {
-                role: "system",
-                content: "You are a helpful assistant for the Waraf hydroponics system. You are knowledgeable about hydroponics, gardening, plant care, and can help users with technical questions about their system. Keep responses concise and practical."
-              },
-              {
-                role: "user",
-                content: userMessage
-              }
-            ],
-            max_tokens: 500
-          })
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('API request failed');
-          }
-          return response.json();
-        })
-        .then(data => {
-          removeTypingIndicator();
+        // Create a new message div for the response
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'ai-message assistant-message';
+        messageDiv.textContent = ''; // Start empty
+        
+        // Add the message div to the chat
+        aiChatMessages.appendChild(messageDiv);
+        
+        if (useOpenRouter) {
+          // Using OpenRouter API
+          console.log(`Sending request to OpenRouter using model: ${aiModelName}`);
           
-          // Extract the message from the response
-          if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-            const aiResponse = data.choices[0].message.content;
-            addMessage(aiResponse);
-          } else {
-            throw new Error('Unexpected API response format');
-          }
-        })
-        .catch(error => {
-          console.error('Error getting AI response:', error);
-          removeTypingIndicator();
-          addMessage("Sorry, I'm having trouble connecting to my AI services right now. Please try again later or contact your system administrator if the problem persists.");
-        });
+          fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openRouterApiKey}`,
+              'HTTP-Referer': window.location.origin
+            },
+            body: JSON.stringify({
+              model: aiModelName,
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a hydroponic expert working for Waraf, a company specializing in solar-powered vertical hydroponic systems. Provide concise, direct answers to user questions without unnecessary elaboration. Always report temperature in Celsius (°C) only, never in Fahrenheit. Your expertise includes: 1) Plant growth in hydroponic environments, 2) Nutrient solution management (EC, pH, TDS optimization), 3) Environmental monitoring (temperature, humidity, CO2, light), 4) System maintenance and troubleshooting, 5) Crop selection and growth cycles, 6) Water and energy efficiency, 7) Sustainable practices in hydroponics. Answer questions accurately using scientific knowledge. Focus on practical advice for users managing Waraf's vertical hydroponic systems in hot, arid climates. Emphasize sustainable practices that align with Saudi Arabia's Vision 2030 food security goals."
+                },
+                {
+                  role: "user",
+                  content: message
+                }
+              ],
+              max_tokens: 500,
+              stream: true // Enable streaming response
+            })
+          })
+          .then(response => {
+            if (!response.ok) {
+              // If OpenRouter fails, fall back to the original API
+              console.log('OpenRouter request failed, falling back to standard API');
+              useOpenRouter = false;
+              
+              // Remove the current message div
+              messageDiv.remove();
+              
+              // Try again with the standard API
+              sendMessage(message);
+              return;
+            }
+            
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Create a text decoder
+            const decoder = new TextDecoder();
+            
+            // Create a reader for streaming
+            const reader = response.body.getReader();
+            
+            // Function to process the stream
+            function processStream() {
+              return reader.read().then(({ done, value }) => {
+                if (done) {
+                  console.log('Stream complete');
+                  return;
+                }
+                
+                // Decode the chunk
+                const chunk = decoder.decode(value, { stream: true });
+                
+                try {
+                  // Process data chunks
+                  const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                  
+                  for (const line of lines) {
+                    // Skip data: prefix and parse JSON
+                    if (line.startsWith('data:')) {
+                      const jsonData = line.replace(/^data: /, '').trim();
+                      
+                      // Check for the end of the stream
+                      if (jsonData === '[DONE]') {
+                        return;
+                      }
+                      
+                      try {
+                        const parsedData = JSON.parse(jsonData);
+                        
+                        // Check if we have content to display
+                        if (
+                          parsedData.choices && 
+                          parsedData.choices[0] && 
+                          parsedData.choices[0].delta && 
+                          parsedData.choices[0].delta.content
+                        ) {
+                          // Append the new content
+                          const newContent = parsedData.choices[0].delta.content;
+                          messageDiv.textContent += newContent;
+                          
+                          // Scroll to bottom
+                          aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                        }
+                      } catch (e) {
+                        console.error('Error parsing JSON:', e, jsonData);
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error processing chunk:', e);
+                }
+                
+                // Continue reading the stream
+                return processStream();
+              });
+            }
+            
+            // Start processing the stream
+            return processStream();
+          })
+          .catch(error => {
+            console.error('Error with OpenRouter API:', error);
+            
+            // If there's an error with OpenRouter, fall back to the standard API
+            console.log('OpenRouter error, falling back to standard API');
+            useOpenRouter = false;
+            
+            // Remove the current message div
+            messageDiv.remove();
+            
+            // Try again with the standard API
+            sendMessage(message);
+          });
+        } else {
+          // Using standard API endpoint
+          console.log('Sending request to standard API:', aiApiEndpoint);
+          
+          fetch(aiApiEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: "gpt-3.5-turbo",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a hydroponic expert working for Waraf, a company specializing in solar-powered vertical hydroponic systems. Provide concise, direct answers to user questions without unnecessary elaboration. Always report temperature in Celsius (°C) only, never in Fahrenheit. Your expertise includes: 1) Plant growth in hydroponic environments, 2) Nutrient solution management (EC, pH, TDS optimization), 3) Environmental monitoring (temperature, humidity, CO2, light), 4) System maintenance and troubleshooting, 5) Crop selection and growth cycles, 6) Water and energy efficiency, 7) Sustainable practices in hydroponics. Answer questions accurately using scientific knowledge. Focus on practical advice for users managing Waraf's vertical hydroponic systems in hot, arid climates. Emphasize sustainable practices that align with Saudi Arabia's Vision 2030 food security goals."
+                },
+                {
+                  role: "user",
+                  content: message
+                }
+              ],
+              max_tokens: 500,
+              stream: true // Enable streaming response
+            })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+            }
+            
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Create a text decoder
+            const decoder = new TextDecoder();
+            
+            // Create a reader for streaming
+            const reader = response.body.getReader();
+            
+            // Function to process the stream
+            function processStream() {
+              return reader.read().then(({ done, value }) => {
+                if (done) {
+                  console.log('Stream complete');
+                  return;
+                }
+                
+                // Decode the chunk
+                const chunk = decoder.decode(value, { stream: true });
+                
+                try {
+                  // Process data chunks
+                  const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                  
+                  for (const line of lines) {
+                    // Skip data: prefix and parse JSON
+                    if (line.startsWith('data:')) {
+                      const jsonData = line.replace(/^data: /, '').trim();
+                      
+                      // Check for the end of the stream
+                      if (jsonData === '[DONE]') {
+                        return;
+                      }
+                      
+                      try {
+                        const parsedData = JSON.parse(jsonData);
+                        
+                        // Check if we have content to display
+                        if (
+                          parsedData.choices && 
+                          parsedData.choices[0] && 
+                          parsedData.choices[0].delta && 
+                          parsedData.choices[0].delta.content
+                        ) {
+                          // Append the new content
+                          const newContent = parsedData.choices[0].delta.content;
+                          messageDiv.textContent += newContent;
+                          
+                          // Scroll to bottom
+                          aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                        }
+                      } catch (e) {
+                        console.error('Error parsing JSON:', e, jsonData);
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error processing chunk:', e);
+                }
+                
+                // Continue reading the stream
+                return processStream();
+              });
+            }
+            
+            // Start processing the stream
+            return processStream();
+          })
+          .catch(error => {
+            console.error('Error sending message to API:', error);
+            removeTypingIndicator();
+            
+            // Show error message
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'ai-message error-message';
+            errorMessage.textContent = `Error: Could not connect to the AI service. ${error.message}`;
+            aiChatMessages.appendChild(errorMessage);
+            
+            // Scroll to bottom
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+          });
+        }
       }
       
-      // Handle send button click
+      // Event listeners
+      
+      // Toggle chat interface
+      aiButton.addEventListener('click', function() {
+        aiChatInterface.classList.add('active');
+        aiChatInput.focus();
+      });
+      
+      // Close chat interface
+      aiChatClose.addEventListener('click', function() {
+        aiChatInterface.classList.remove('active');
+      });
+      
+      // Start new chat
+      aiChatNew.addEventListener('click', startNewChat);
+      
+      // Send message on button click
       aiChatSend.addEventListener('click', function() {
-        const userMessage = aiChatInput.value.trim();
-        if (userMessage) {
-          addMessage(userMessage, true);
+        const message = aiChatInput.value.trim();
+        if (message) {
+          addUserMessage(message);
           aiChatInput.value = '';
-          getAIResponse(userMessage);
+          sendMessage(message);
         }
       });
       
-      // Handle Enter key press
+      // Send message on Enter key press
       aiChatInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-          const userMessage = aiChatInput.value.trim();
-          if (userMessage) {
-            addMessage(userMessage, true);
+          const message = aiChatInput.value.trim();
+          if (message) {
+            addUserMessage(message);
             aiChatInput.value = '';
-            getAIResponse(userMessage);
+            sendMessage(message);
           }
         }
       });
+      
+      // Initialize AI Assistant
+      initializeAIAssistant();
     });
   </script>
-  
 </body>
 
 </html> 
